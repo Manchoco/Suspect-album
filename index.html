@@ -125,6 +125,7 @@ ol.tracks{list-style:none;border-top:1px solid var(--line)}
 .more{display:none;font-size:12px;font-weight:700;color:#fff;text-decoration:none;padding:6px 12px;border-radius:999px;background:var(--red);white-space:nowrap}
 .track.ended .more{display:inline-block;animation:pop .4s ease}
 @keyframes pop{0%{transform:scale(.6);opacity:0}100%{transform:none;opacity:1}}
+.track.soon .tname b{color:#8d8781}
 .badge{font-size:10px;letter-spacing:.12em;text-transform:uppercase;border:1px solid #4a433e;color:#b5afa9;padding:2px 6px;border-radius:4px;margin-left:8px;vertical-align:2px}
 .track button.hit{position:absolute;inset:0;z-index:1}
 .track .more{position:relative;z-index:2}
@@ -208,7 +209,7 @@ footer{color:#6f6964;font-size:12px;padding:40px 0 10px;text-align:center}
       </div>
     </header>
 
-    <p class="rules">Chaque titre = <strong>1 minute max</strong>. Chaque extrait écouté dévoile un morceau de la pochette. Ouvre les 18 pour révéler Zeus en entier. La suite ? Sur Spotify.</p>
+    <p class="rules">Chaque titre = <strong>30 secondes max</strong>. Chaque extrait écouté dévoile un morceau de la pochette. Ouvre les 18 pour révéler Zeus en entier. La suite ? Sur Spotify.</p>
 
     <ol class="tracks" id="tracks"></ol>
 
@@ -220,7 +221,7 @@ footer{color:#6f6964;font-size:12px;padding:40px 0 10px;text-align:center}
 <div id="np" aria-live="polite">
   <div class="np-in">
     <img src="assets/cover.jpg" alt="">
-    <div class="np-t"><b id="npTitle">—</b><span id="npSub">Extrait · 1:00 max</span><canvas id="viz" aria-hidden="true"></canvas></div>
+    <div class="np-t"><b id="npTitle">—</b><span id="npSub">Extrait · 0:30 max</span><canvas id="viz" aria-hidden="true"></canvas></div>
     <div class="np-btns">
       <button id="npStop" aria-label="Stop"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="1"/></svg></button>
       <button id="npNext" aria-label="Extrait suivant"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 5l9 7-9 7V5zm10 0h2v14h-2z"/></svg></button>
@@ -251,13 +252,13 @@ const ALBUM = {
   artist: "Suspect 95",
   spotify: "https://open.spotify.com/album/60fPHO1yeZ4CVHkg2tsD3W",
 };
-const PREVIEW_MAX   = 60;   // secondes max par extrait (règle d'or)
-const UNLOCK_AFTER  = 15;   // secondes écoutées pour dévoiler une case de la pochette
-const FADE_OUT      = 4;    // fondu de sortie (s)
+const PREVIEW_MAX   = 30;   // secondes max par extrait (règle d'or)
+const UNLOCK_AFTER  = 10;   // secondes écoutées pour dévoiler une case de la pochette
+const FADE_OUT      = 3;    // fondu de sortie (s)
 const AUTO_NEXT     = true; // enchaîne sur l'extrait suivant
 const DEMO_FALLBACK = null; // ex. "assets/demo.mp3" pour tester sans les vrais extraits
 
-// Extraits DÉJÀ coupés à 60 s : audio/01.mp3 … audio/18.mp3 (voir make_clips.sh).
+// Extraits DÉJÀ coupés à 30 s : audio/01.mp3 … audio/18.mp3 (voir make_clips.sh).
 // Ne jamais mettre les masters entiers en ligne : couper en JS ne protège rien.
 const TRACKS = [
   ["Démosthène blues","",   "1:43","1zVXCMS86PSxXrp6VPGtL4"],
@@ -375,7 +376,7 @@ TRACKS.forEach((tr,i)=>{
     <div class="tname"><b>${tr.t}</b><span>Suspect 95${tr.feat ? ` · <span class="feat">feat. ${tr.feat}</span>` : ""}</span></div>
     <div class="right">
       <a class="more" href="${tr.url}" target="_blank" rel="noopener">La suite ›</a>
-      <span class="left-t">1:00</span><span class="dur">${tr.dur}</span>
+      <span class="left-t">0:30</span><span class="dur">${tr.dur}</span>
     </div>
     <button class="hit" aria-label="Écouter l'extrait de ${tr.t}"></button>`;
   li.querySelector(".hit").addEventListener("click", ()=> toggle(i));
@@ -405,6 +406,12 @@ const rowOf = i => ol.children[i];
 function toggle(i){ (cur===i && !audio.paused) ? stop() : play(i); }
 
 async function play(i){
+  if (i < 0) return;
+  const soon = rowOf(i);
+  if (TRACKS[i].ok === false){                       // extrait pas encore en ligne
+    toast("Extrait bientôt dispo — écoute-le sur Spotify");
+    soon.classList.add("ended"); return;
+  }
   initAudioGraph(); ctx?.resume();
   clearTimeout(endTimer);
   if (cur>=0) resetRow(cur);
@@ -424,7 +431,7 @@ async function play(i){
     try{ await loadAndPlay(DEMO_FALLBACK); }catch{ if (my===token) resetRow(i); return; }
   }
   if (my!==token) return;
-  $("#npSub").textContent = isDemo ? "DÉMO · ajoute le vrai extrait dans /audio" : "Extrait · 1:00 max";
+  $("#npSub").textContent = isDemo ? "DÉMO · ajoute le vrai extrait dans /audio" : "Extrait · 0:30 max";
   if (isDemo && !li.querySelector(".badge")) li.querySelector(".tname b").insertAdjacentHTML("beforeend",'<span class="badge">démo</span>');
   requestAnimationFrame(()=>tick(my));
 }
@@ -457,9 +464,10 @@ function finish(my){
   unlock(i);
   const li = rowOf(i); li.classList.remove("active"); li.classList.add("ended");
   li.querySelector(".fg").style.strokeDashoffset = 0;
-  if (AUTO_NEXT && i < TRACKS.length-1 && unlocked.size < 18){
+  const nxt = nextReady(i+1);
+  if (AUTO_NEXT && nxt >= 0 && unlocked.size < 18){
     $("#npSub").textContent = "La suite est sur Spotify · extrait suivant…";
-    endTimer = setTimeout(()=>{ if (my===token) play(i+1); }, 1800);
+    endTimer = setTimeout(()=>{ if (my===token) play(nxt); }, 1800);
   } else { cur = -1; $("#npSub").textContent = "Fin des extraits — écoute l'EP en entier"; }
 }
 function resetRow(i){
@@ -472,8 +480,20 @@ function stop(){
   if (cur>=0) resetRow(cur); cur=-1; $("#np").classList.remove("show");
 }
 $("#npStop").addEventListener("click", stop);
-$("#npNext").addEventListener("click", ()=> play(cur<0 ? 0 : (cur+1)%TRACKS.length));
-$("#playAll").addEventListener("click", ()=> play(0));
+$("#npNext").addEventListener("click", ()=>{ const n = nextReady(cur+1); play(n >= 0 ? n : nextReady(0)); });
+$("#playAll").addEventListener("click", ()=> play(nextReady(0)));
+
+/* Quels extraits sont en ligne ? (il suffit d'ajouter audio/NN.mp3 : rien à changer ici) */
+function nextReady(from){ for (let k=Math.max(0,from); k<TRACKS.length; k++) if (TRACKS[k].ok !== false) return k; return -1; }
+if (/^https?:/.test(location.protocol)){
+  TRACKS.forEach((tr,i)=>{
+    fetch(tr.clip, {method:"HEAD", cache:"no-store"}).then(r=>{
+      tr.ok = r.ok;
+      if (!r.ok){ const li = rowOf(i); li.classList.add("soon");
+        li.querySelector(".tname b").insertAdjacentHTML("beforeend",'<span class="badge">bientôt</span>'); }
+    }).catch(()=>{});
+  });
+}
 
 /* visualiseur chrome/rouge */
 const cv = $("#viz"), g = cv.getContext("2d");
