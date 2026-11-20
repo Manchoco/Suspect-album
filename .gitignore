@@ -1,0 +1,4 @@
+masters/
+*.wav
+*.flac
+.DS_Store

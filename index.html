@@ -1,0 +1,507 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Désmothène Zeus — Out Now</title>
+<meta name="description" content="Suspect 95 — Désmothène Zeus. Ouvre OUT NOW et goûte aux 18 titres.">
+<meta property="og:title" content="Suspect 95 — Désmothène Zeus · OUT NOW">
+<meta property="og:image" content="assets/cover.jpg">
+<meta name="theme-color" content="#0a0a0b">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0a0b; --ink:#f4f2ef; --mute:#9a9692; --line:#26221f;
+  --red:#b3140f; --red-hi:#e0261c; --red-deep:#5a0907;
+  --chrome:linear-gradient(180deg,#fff 0%,#c9c9cc 38%,#6d6d72 52%,#e9e9ec 70%,#9b9ba0 100%);
+  --stage-w:min(100vw, calc(100svh * 9 / 16));
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+body{overflow:hidden}
+body.list-mode{overflow:auto}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--red-hi);outline-offset:3px}
+
+/* ---------- STAGE (9:16) ---------- */
+#intro{position:fixed;inset:0;display:grid;place-items:center;background:#000;z-index:5;transition:opacity .8s ease}
+#intro.gone{opacity:0;pointer-events:none}
+#intro::before{content:"";position:absolute;inset:-40px;background:url(assets/outnow.jpg) center/cover;filter:blur(40px) brightness(.35);}
+.stage{position:relative;width:var(--stage-w);aspect-ratio:9/16;max-height:100svh;overflow:hidden;background:#000;box-shadow:0 0 120px #000}
+.stage video,.stage .half{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.half{background:url(assets/outnow.jpg) center/100% 100% no-repeat;opacity:0;transition:transform 1.25s cubic-bezier(.7,0,.2,1)}
+.half.top{clip-path:inset(0 0 64.5% 0)}
+.half.bot{clip-path:inset(35.5% 0 0 0)}
+.stage.split .half{opacity:1}
+.stage.open .half.top{transform:translateY(-70%)}
+.stage.open .half.bot{transform:translateY(70%)}
+.seam{position:absolute;left:0;right:0;top:35.5%;height:2px;background:#fff;box-shadow:0 0 30px 8px #fff,0 0 90px 30px rgba(255,255,255,.5);transform:scaleX(0);opacity:0;transition:transform .45s ease,opacity .3s}
+.stage.charge .seam{transform:scaleX(1);opacity:1}
+.stage.open .seam{opacity:0;transition-delay:.5s}
+
+/* gate */
+.gate{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:18px;padding:0 24px 12%;background:linear-gradient(180deg,rgba(0,0,0,.2),rgba(0,0,0,.85)),url(assets/cover.jpg) center/cover;z-index:3;transition:opacity .6s}
+.gate.gone{opacity:0;pointer-events:none}
+.gate h1{font-family:Anton,Impact,sans-serif;font-weight:400;font-size:clamp(28px,9vw,54px);letter-spacing:.02em;line-height:.95;text-align:center;background:var(--chrome);-webkit-background-clip:text;background-clip:text;color:transparent}
+.gate p{color:#cfcac5;font-size:13px;letter-spacing:.25em;text-transform:uppercase}
+.btn-enter{font-family:Anton,Impact,sans-serif;font-size:22px;letter-spacing:.2em;padding:14px 38px;border:1px solid rgba(255,255,255,.7);background:rgba(179,20,15,.85);box-shadow:0 0 0 6px rgba(179,20,15,.25);transition:transform .2s,box-shadow .2s}
+.btn-enter:hover{transform:scale(1.04);box-shadow:0 0 0 10px rgba(179,20,15,.25)}
+.gate small{color:#8d8884;font-size:11px}
+
+.skip{position:absolute;right:12px;top:12px;z-index:4;font-size:12px;letter-spacing:.15em;text-transform:uppercase;padding:8px 12px;background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.25);opacity:0;pointer-events:none;transition:opacity .4s}
+.stage.playing .skip{opacity:1;pointer-events:auto}
+.mute{left:12px;right:auto}
+
+/* hotspot on OUT NOW */
+.hot{position:absolute;left:6%;right:6%;top:11%;height:48%;z-index:4;display:none;border-radius:6px}
+.stage.ready .hot{display:block;animation:breathe 1.8s ease-in-out infinite}
+@keyframes breathe{0%,100%{box-shadow:0 0 0 0 rgba(224,38,28,0),inset 0 0 0 1px rgba(255,255,255,0)}50%{box-shadow:0 0 60px 6px rgba(224,38,28,.35),inset 0 0 0 1px rgba(255,255,255,.35)}}
+.hint{position:absolute;left:0;right:0;bottom:4%;text-align:center;z-index:4;font-size:12px;letter-spacing:.3em;text-transform:uppercase;color:#fff;opacity:0;transition:opacity .6s;text-shadow:0 1px 8px #000}
+.stage.ready .hint{opacity:1}
+.hint b{display:inline-block;animation:tap 1.4s ease-in-out infinite}
+@keyframes tap{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+
+/* ---------- TRACKLIST ---------- */
+#list{min-height:100svh;opacity:0;transform:scale(.97);transition:opacity 1s ease .2s,transform 1.2s cubic-bezier(.2,.7,.2,1) .2s;padding-bottom:120px;
+  background:radial-gradient(120% 60% at 50% -10%,rgba(179,20,15,.35),transparent 60%),var(--bg)}
+#list.show{opacity:1;transform:none}
+#list[hidden]{display:none}
+.wrap{max-width:1080px;margin:0 auto;padding:0 16px}
+header.hero{display:grid;grid-template-columns:minmax(0,1fr);gap:28px;padding:40px 0 28px}
+@media(min-width:820px){header.hero{grid-template-columns:400px 1fr;align-items:end;padding-top:64px}}
+.kicker{font-size:12px;letter-spacing:.3em;text-transform:uppercase;color:var(--red-hi);font-weight:600}
+.title{font-family:Anton,Impact,sans-serif;font-weight:400;font-size:clamp(46px,9vw,96px);line-height:.92;margin:10px 0 12px;background:var(--chrome);-webkit-background-clip:text;background-clip:text;color:transparent}
+.meta{color:var(--mute);font-size:14px}
+.meta strong{color:var(--ink);font-weight:600}
+.cta-row{display:flex;flex-wrap:wrap;gap:12px;margin-top:22px}
+.cta{display:inline-flex;align-items:center;gap:10px;padding:13px 22px;border-radius:999px;font-weight:700;font-size:14px;text-decoration:none;letter-spacing:.02em}
+.cta.primary{background:var(--red);color:#fff;box-shadow:0 8px 30px rgba(179,20,15,.45)}
+.cta.primary:hover{background:var(--red-hi)}
+.cta.ghost{border:1px solid #3a3531}
+.cta.ghost:hover{border-color:#77706a}
+.cta svg{width:18px;height:18px}
+
+/* mosaic */
+.mosaic{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(6,1fr);aspect-ratio:1;width:100%;max-width:400px;gap:2px;background:#000;border:1px solid #2a2522;box-shadow:0 30px 80px rgba(0,0,0,.6)}
+.tile{background-image:url(assets/cover.jpg);background-size:300% 600%;filter:grayscale(1) brightness(.3) contrast(1.4) blur(1.5px);transition:filter 1.2s ease,transform .9s cubic-bezier(.2,.8,.2,1);position:relative}
+.tile::after{content:"";position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.08),transparent 40%,rgba(255,255,255,.05) 60%,transparent);transition:opacity 1s}
+.tile.on{filter:none}
+.tile.on::after{opacity:0}
+.tile.flash{animation:flip .9s ease}
+@keyframes flip{0%{transform:rotateY(90deg) scale(.9)}100%{transform:none}}
+.mosaic-cap{display:flex;justify-content:space-between;align-items:center;max-width:400px;margin-top:10px;font-size:12px;color:var(--mute);letter-spacing:.06em}
+.bar{flex:1;height:3px;background:#221e1b;margin:0 12px;border-radius:2px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--red),#fff);transition:width .8s}
+
+.rules{margin:4px 0 22px;padding:14px 16px;border-left:2px solid var(--red);background:rgba(255,255,255,.025);color:#c8c3be;font-size:14px;line-height:1.55}
+
+/* tracks */
+ol.tracks{list-style:none;border-top:1px solid var(--line)}
+.track{display:grid;grid-template-columns:44px 1fr auto;align-items:center;gap:12px;padding:12px 6px;border-bottom:1px solid var(--line);position:relative;transition:background .25s}
+.track:hover{background:rgba(255,255,255,.03)}
+.track.active{background:linear-gradient(90deg,rgba(179,20,15,.22),rgba(179,20,15,.02))}
+.num{position:relative;width:40px;height:40px;display:grid;place-items:center;border-radius:50%;color:var(--mute);font-variant-numeric:tabular-nums;font-size:14px}
+.num svg.ring{position:absolute;inset:0;transform:rotate(-90deg)}
+.ring circle{fill:none;stroke-width:2.5}
+.ring .bg{stroke:#2a2522}
+.ring .fg{stroke:var(--red-hi);stroke-linecap:round;stroke-dasharray:113.1;stroke-dashoffset:113.1}
+.num .ic{display:none;width:16px;height:16px;color:#fff}
+.track:hover .num .n,.track.active .num .n{display:none}
+.track:hover .num .ic.play{display:block}
+.track.active .num .ic.play{display:none}
+.track.active .num .ic.stop{display:block}
+.track.done .num{color:var(--red-hi)}
+.tname{min-width:0}
+.tname b{display:block;font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tname span{font-size:13px;color:var(--mute)}
+.tname .feat{color:#d6d1cc}
+.right{display:flex;align-items:center;gap:14px;color:var(--mute);font-size:13px;font-variant-numeric:tabular-nums}
+.right .left-t{color:#fff;font-weight:600;min-width:38px;text-align:right;display:none}
+.track.active .left-t{display:block}
+.track.active .dur{display:none}
+.more{display:none;font-size:12px;font-weight:700;color:#fff;text-decoration:none;padding:6px 12px;border-radius:999px;background:var(--red);white-space:nowrap}
+.track.ended .more{display:inline-block;animation:pop .4s ease}
+@keyframes pop{0%{transform:scale(.6);opacity:0}100%{transform:none;opacity:1}}
+.badge{font-size:10px;letter-spacing:.12em;text-transform:uppercase;border:1px solid #4a433e;color:#b5afa9;padding:2px 6px;border-radius:4px;margin-left:8px;vertical-align:2px}
+.track button.hit{position:absolute;inset:0;z-index:1}
+.track .more{position:relative;z-index:2}
+
+/* now playing */
+#np{position:fixed;left:0;right:0;bottom:0;z-index:20;transform:translateY(110%);transition:transform .5s cubic-bezier(.2,.8,.2,1);background:rgba(14,12,11,.92);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-top:1px solid #2a2522;padding:10px 16px calc(10px + env(safe-area-inset-bottom))}
+#np.show{transform:none}
+.np-in{max-width:1080px;margin:0 auto;display:grid;grid-template-columns:48px 1fr auto;gap:12px;align-items:center}
+.np-in img{width:48px;height:48px;object-fit:cover;border-radius:4px}
+.np-t{min-width:0}
+.np-t b{display:block;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.np-t span{font-size:12px;color:var(--mute)}
+#viz{width:100%;height:22px;display:block;margin-top:4px}
+.np-btns{display:flex;gap:8px;align-items:center}
+.np-btns button{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;border:1px solid #3a3531}
+.np-btns button:hover{border-color:#8a827b}
+.np-btns svg{width:16px;height:16px}
+
+/* completion */
+#done{position:fixed;inset:0;z-index:30;display:grid;place-items:center;background:rgba(0,0,0,.82);opacity:0;pointer-events:none;transition:opacity .6s;padding:16px}
+#done.show{opacity:1;pointer-events:auto}
+.done-card{max-width:420px;width:100%;text-align:center}
+.done-card img{width:100%;max-width:300px;box-shadow:0 0 120px rgba(179,20,15,.55)}
+.done-card h2{font-family:Anton,Impact,sans-serif;font-weight:400;font-size:40px;line-height:1;margin:20px 0 8px;background:var(--chrome);-webkit-background-clip:text;background-clip:text;color:transparent}
+.done-card p{color:#cfc9c3;font-size:15px;line-height:1.5}
+.done-card .cta-row{justify-content:center}
+
+footer{color:#6f6964;font-size:12px;padding:40px 0 10px;text-align:center}
+.toast{position:fixed;left:50%;top:18px;transform:translate(-50%,-140%);background:#141110;border:1px solid #3a3531;padding:10px 16px;border-radius:999px;font-size:13px;z-index:40;transition:transform .4s}
+.toast.show{transform:translate(-50%,0)}
+
+@media (prefers-reduced-motion:reduce){
+  *{animation:none!important;transition-duration:.01ms!important}
+}
+</style>
+</head>
+<body>
+
+<!-- ============ INTRO : gate → teaser → OUT NOW ============ -->
+<section id="intro" aria-label="Intro">
+  <div class="stage" id="stage">
+    <video id="teaser" src="assets/teaser.mp4" playsinline preload="auto" poster="assets/cover.jpg"></video>
+    <div class="half top" aria-hidden="true"></div>
+    <div class="half bot" aria-hidden="true"></div>
+    <div class="seam" aria-hidden="true"></div>
+
+    <button class="skip" id="skip">Passer ›</button>
+    <button class="skip mute" id="mute">Son ON</button>
+
+    <button class="hot" id="hot" aria-label="Ouvrir OUT NOW et découvrir les titres"></button>
+    <div class="hint" aria-hidden="true"><b>▲</b>&nbsp; Touche OUT NOW</div>
+
+    <div class="gate" id="gate">
+      <p>Suspect 95</p>
+      <h1>Désmothène<br>Zeus</h1>
+      <button class="btn-enter" id="enter">ENTRER</button>
+      <small>Monte le son 🔊</small>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TRACKLIST ============ -->
+<main id="list" hidden>
+  <div class="wrap">
+    <header class="hero">
+      <div>
+        <div class="mosaic" id="mosaic" role="img" aria-label="Pochette de l'EP, dévoilée morceau par morceau"></div>
+        <div class="mosaic-cap"><span id="pcount">0 / 18</span><span class="bar"><i id="pbar"></i></span><span>pochette dévoilée</span></div>
+      </div>
+      <div>
+        <div class="kicker">Out now · EP</div>
+        <h2 class="title">Désmothène Zeus</h2>
+        <div class="meta"><strong>Suspect 95</strong> · 2026 · 18 titres · 52 min</div>
+        <div class="cta-row">
+          <a class="cta primary" id="fullCta" target="_blank" rel="noopener" href="#">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 1a11 11 0 1 0 0 22 11 11 0 0 0 0-22Zm5.04 15.87a.69.69 0 0 1-.94.23c-2.6-1.59-5.86-1.94-9.7-1.06a.69.69 0 1 1-.31-1.34c4.2-.96 7.8-.55 10.72 1.23.32.2.43.62.23.94Zm1.35-3a.86.86 0 0 1-1.18.28c-2.97-1.83-7.5-2.36-11.02-1.29a.86.86 0 1 1-.5-1.65c4.02-1.22 9.02-.63 12.42 1.47.4.25.53.78.28 1.19Zm.12-3.12C14.95 8.63 9.1 8.44 5.72 9.47a1.03 1.03 0 1 1-.6-1.97c3.88-1.18 10.34-.95 14.42 1.47a1.03 1.03 0 0 1-1.03 1.78Z"/></svg>
+            Écouter l'EP en entier
+          </a>
+          <button class="cta ghost" id="playAll">▶ Lancer tous les extraits</button>
+        </div>
+      </div>
+    </header>
+
+    <p class="rules">Chaque titre = <strong>1 minute max</strong>. Chaque extrait écouté dévoile un morceau de la pochette. Ouvre les 18 pour révéler Zeus en entier. La suite ? Sur Spotify.</p>
+
+    <ol class="tracks" id="tracks"></ol>
+
+    <footer>© 2026 Le Syndicat · Distribution ADA France / Warner Music Africa FR</footer>
+  </div>
+</main>
+
+<!-- ============ NOW PLAYING ============ -->
+<div id="np" aria-live="polite">
+  <div class="np-in">
+    <img src="assets/cover.jpg" alt="">
+    <div class="np-t"><b id="npTitle">—</b><span id="npSub">Extrait · 1:00 max</span><canvas id="viz" aria-hidden="true"></canvas></div>
+    <div class="np-btns">
+      <button id="npStop" aria-label="Stop"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="1"/></svg></button>
+      <button id="npNext" aria-label="Extrait suivant"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 5l9 7-9 7V5zm10 0h2v14h-2z"/></svg></button>
+    </div>
+  </div>
+</div>
+
+<div id="done" role="dialog" aria-modal="true" aria-labelledby="doneT">
+  <div class="done-card">
+    <img src="assets/cover.jpg" alt="Pochette complète de Désmothène Zeus">
+    <h2 id="doneT">Zeus est révélé.</h2>
+    <p>Tu as goûté aux 18 titres. Les extraits, c'était l'apéro. Le repas complet, c'est maintenant.</p>
+    <div class="cta-row">
+      <a class="cta primary" id="doneCta" target="_blank" rel="noopener" href="#">Écouter l'EP en entier</a>
+      <button class="cta ghost" id="share">Partager</button>
+    </div>
+    <p style="margin-top:14px"><button id="closeDone" style="color:#8d8884;font-size:13px;text-decoration:underline">Fermer</button></p>
+  </div>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+/* =====================================================================
+   CONFIG — tout ce qui se modifie est ici
+   ===================================================================== */
+const ALBUM = {
+  title: "Désmothène Zeus",               // ⚠ orthographe Spotify — à vérifier (voir README)
+  artist: "Suspect 95",
+  spotify: "https://open.spotify.com/album/60fPHO1yeZ4CVHkg2tsD3W",
+};
+const PREVIEW_MAX   = 60;   // secondes max par extrait (règle d'or)
+const UNLOCK_AFTER  = 15;   // secondes écoutées pour dévoiler une case de la pochette
+const FADE_OUT      = 4;    // fondu de sortie (s)
+const AUTO_NEXT     = true; // enchaîne sur l'extrait suivant
+const DEMO_FALLBACK = null; // ex. "assets/demo.mp3" pour tester sans les vrais extraits
+
+// Extraits DÉJÀ coupés à 60 s : audio/01.mp3 … audio/18.mp3 (voir make_clips.sh).
+// Ne jamais mettre les masters entiers en ligne : couper en JS ne protège rien.
+const TRACKS = [
+  ["Démosthène blues","",   "1:43","1zVXCMS86PSxXrp6VPGtL4"],
+  ["Mentalité","",          "2:48","68R27MSzZhGZ4cADzdJNN9"],
+  ["Moyo","døpelym",        "2:49","2rdGHUQ3OG8Onbf01KMvI4"],
+  ["Djosseur","Jefferso'n", "2:59","4hAavtO15BtqGmWPNcDa0s"],
+  ["Djamanan","Kadja",      "3:25","262EIxbC47gNZOmzx4NK3S"],
+  ["Energy","",             "2:47","3B8rZRDbph5H0tcX54elka"],
+  ["Petit pas","",          "3:35","6GhClBY8wDa16YIhQMWnsx"],
+  ["Marass","JEY BROWNIE",  "2:15","7bdg5I9J5GluJJIo3iJZoC"],
+  ["Introspection","",      "2:32","71ZjtR1jxs711RGNrEqtYG"],
+  ["Plus jahin","",         "2:56","1ZpsuOG0eE7wRqzIr9BXYz"],
+  ["Yobi / 2014","",        "4:02","6pxrlCYKZjwKBgMBwwRRSM"],
+  ["Bruit","",              "2:19","0cNVO8fhQqGQA1PLqXo4Ai"],
+  ["Abogahiss","",          "2:20","1ZlVu9eZOjoWdtEbEmBJ7P"],
+  ["Baya","",               "3:17","0nrq4qpzxC0jiKDQdJ8etP"],
+  ["Superpose","",          "3:01","6QGlVGhiWyJ8bRCRJRUtIW"],
+  ["Djô dans ta tête","",   "3:42","2v8tpX6jT0dnEcnfqU0crP"],
+  ["Dieu merci","",         "2:33","3R8UPhVWzRTHP1rknmSJ8x"],
+  ["Avant avant","",        "3:08","0bnqAeme8eUHWbgBS4qOcu"],
+].map(([t,feat,dur,id],i)=>({n:i+1,t,feat,dur,url:`https://open.spotify.com/track/${id}`,clip:`audio/${String(i+1).padStart(2,"0")}.mp3`}));
+
+/* ===================================================================== */
+const $ = s => document.querySelector(s);
+const store = {
+  get(k,d){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; }catch{ return d; } },
+  set(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch{} }
+};
+const toast = (msg) => { const t=$("#toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(toast.h); toast.h=setTimeout(()=>t.classList.remove("show"),2600); };
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+$("#fullCta").href = $("#doneCta").href = ALBUM.spotify;
+
+/* ---------------- INTRO ---------------- */
+const stage = $("#stage"), video = $("#teaser");
+let introDone = false;
+
+$("#enter").addEventListener("click", () => {
+  initAudioGraph();                       // geste utilisateur => son autorisé
+  $("#gate").classList.add("gone");
+  stage.classList.add("playing");
+  video.muted = false;
+  video.play().catch(() => { video.muted = true; $("#mute").textContent="Son OFF"; video.play().catch(showOutNow); });
+});
+$("#mute").addEventListener("click", e => {
+  video.muted = !video.muted; e.currentTarget.textContent = video.muted ? "Son OFF" : "Son ON";
+});
+$("#skip").addEventListener("click", () => { video.pause(); showOutNow(); });
+video.addEventListener("ended", showOutNow);
+
+function showOutNow(){
+  if (stage.classList.contains("split")) return;
+  stage.classList.remove("playing");
+  stage.classList.add("split","ready");   // l'image figée OUT/NOW remplace la vidéo
+  video.style.visibility = "hidden";
+  $("#hot").focus({preventScroll:true});
+}
+
+$("#hot").addEventListener("click", openOutNow);
+function openOutNow(){
+  if (introDone) return; introDone = true;
+  stage.classList.remove("ready");
+  navigator.vibrate?.(25);
+  stage.classList.add("charge");                                      // la lumière fend OUT / NOW
+  setTimeout(() => stage.classList.add("open"), reduce ? 0 : 420);    // OUT monte, NOW descend
+  setTimeout(() => {
+    $("#intro").classList.add("gone");
+    document.body.classList.add("list-mode");
+    const list = $("#list"); list.hidden = false;
+    requestAnimationFrame(() => requestAnimationFrame(() => list.classList.add("show")));
+  }, reduce ? 50 : 1350);
+  setTimeout(() => { video.removeAttribute("src"); video.load(); $("#intro").remove(); }, 2400);
+}
+
+/* ---------------- MOSAÏQUE ---------------- */
+// Révélation dispersée : la piste i dévoile la case PERM[i]
+const PERM = [7,0,14,4,11,2,16,9,5,13,1,17,8,3,15,10,6,12];
+const unlocked = new Set(store.get("zeus.unlocked", []).filter(i => i>=0 && i<18));
+const mosaic = $("#mosaic");
+for (let k=0;k<18;k++){
+  const d = document.createElement("div");
+  d.className = "tile";
+  d.style.backgroundPosition = `${(k%3)*50}% ${Math.floor(k/3)*20}%`;
+  mosaic.appendChild(d);
+}
+function paintMosaic(flashIdx){
+  const onTiles = new Set([...unlocked].map(i=>PERM[i]));
+  [...mosaic.children].forEach((d,k)=> d.classList.toggle("on", onTiles.has(k)));
+  if (flashIdx!=null){ const d = mosaic.children[PERM[flashIdx]]; d.classList.remove("flash"); void d.offsetWidth; d.classList.add("flash"); }
+  $("#pcount").textContent = `${unlocked.size} / 18`;
+  $("#pbar").style.width = `${unlocked.size/18*100}%`;
+  [...ol.children].forEach((li,i)=> li.classList.toggle("done", unlocked.has(i)));
+}
+function unlock(i){
+  if (unlocked.has(i)) return;
+  unlocked.add(i); store.set("zeus.unlocked",[...unlocked]);
+  paintMosaic(i);
+  if (unlocked.size === 18) setTimeout(()=> $("#done").classList.add("show"), 1200);
+  else if ([6,12].includes(unlocked.size)) toast(`${unlocked.size}/18 — Zeus prend forme…`);
+}
+
+/* ---------------- TRACKLIST ---------------- */
+const RING = 113.1;
+const ol = $("#tracks");
+TRACKS.forEach((tr,i)=>{
+  const li = document.createElement("li");
+  li.className = "track";
+  li.innerHTML = `
+    <div class="num">
+      <svg class="ring" viewBox="0 0 40 40" aria-hidden="true"><circle class="bg" cx="20" cy="20" r="18"/><circle class="fg" cx="20" cy="20" r="18"/></svg>
+      <span class="n">${tr.n}</span>
+      <svg class="ic play" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4l13 8-13 8z"/></svg>
+      <svg class="ic stop" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="1"/></svg>
+    </div>
+    <div class="tname"><b>${tr.t}</b><span>Suspect 95${tr.feat ? ` · <span class="feat">feat. ${tr.feat}</span>` : ""}</span></div>
+    <div class="right">
+      <a class="more" href="${tr.url}" target="_blank" rel="noopener">La suite ›</a>
+      <span class="left-t">1:00</span><span class="dur">${tr.dur}</span>
+    </div>
+    <button class="hit" aria-label="Écouter l'extrait de ${tr.t}"></button>`;
+  li.querySelector(".hit").addEventListener("click", ()=> toggle(i));
+  ol.appendChild(li);
+});
+paintMosaic();
+
+/* ---------------- AUDIO ---------------- */
+const audio = new Audio(); audio.preload = "none";
+let ctx=null, gain=null, analyser=null, freq=null;
+function initAudioGraph(){
+  // Web Audio uniquement en http(s) : en file:// Chrome rendrait le son muet.
+  if (ctx || !/^https?:/.test(location.protocol)) return;
+  try{
+    ctx = new (window.AudioContext||window.webkitAudioContext)();
+    const src = ctx.createMediaElementSource(audio);
+    gain = ctx.createGain(); analyser = ctx.createAnalyser(); analyser.fftSize = 64;
+    src.connect(gain).connect(analyser).connect(ctx.destination);
+    freq = new Uint8Array(analyser.frequencyBinCount);
+  }catch{ ctx = null; gain = null; analyser = null; }
+}
+const setVol = v => { v = Math.max(0,Math.min(1,v)); if (gain) gain.gain.value = v; else audio.volume = v; };
+
+let cur = -1, token = 0, isDemo = false, endTimer = null;
+const rowOf = i => ol.children[i];
+
+function toggle(i){ (cur===i && !audio.paused) ? stop() : play(i); }
+
+async function play(i){
+  initAudioGraph(); ctx?.resume();
+  clearTimeout(endTimer);
+  if (cur>=0) resetRow(cur);
+  cur = i; const my = ++token; const tr = TRACKS[i];
+  const li = rowOf(i); li.classList.add("active"); li.classList.remove("ended");
+  $("#npTitle").textContent = `${tr.n}. ${tr.t}${tr.feat?` (feat. ${tr.feat})`:""}`;
+  $("#npSub").textContent = "Chargement…";
+  $("#np").classList.add("show");
+  setVol(0);
+  isDemo = false;
+  try { await loadAndPlay(tr.clip); }
+  catch(e){
+    if (my!==token) return;
+    if (e && e.name==="NotAllowedError"){ toast("Touche encore pour lancer le son"); return resetRow(i); }
+    if (!DEMO_FALLBACK){ toast("Extrait bientôt dispo — écoute-le sur Spotify"); resetRow(i); li.classList.add("ended"); return; }
+    isDemo = true;
+    try{ await loadAndPlay(DEMO_FALLBACK); }catch{ if (my===token) resetRow(i); return; }
+  }
+  if (my!==token) return;
+  $("#npSub").textContent = isDemo ? "DÉMO · ajoute le vrai extrait dans /audio" : "Extrait · 1:00 max";
+  if (isDemo && !li.querySelector(".badge")) li.querySelector(".tname b").insertAdjacentHTML("beforeend",'<span class="badge">démo</span>');
+  requestAnimationFrame(()=>tick(my));
+}
+function loadAndPlay(src){
+  return new Promise((res,rej)=>{
+    const onErr = () => { audio.removeEventListener("error", onErr); rej(new Error("missing")); };
+    audio.addEventListener("error", onErr);
+    audio.src = src;
+    audio.play().then(()=>{ audio.removeEventListener("error", onErr); res(); })
+                .catch(err=>{ audio.removeEventListener("error", onErr); rej(err); });
+  });
+}
+
+function tick(my){
+  if (my!==token || cur<0) return;
+  const li = rowOf(cur);
+  const limit = Math.min(PREVIEW_MAX, isFinite(audio.duration) ? audio.duration : PREVIEW_MAX);
+  const t = audio.currentTime;
+  setVol(Math.min(1, t/0.6, (limit - t)/FADE_OUT));      // fondu d'entrée + de sortie
+  li.querySelector(".fg").style.strokeDashoffset = RING * (1 - Math.min(1,t/limit));
+  li.querySelector(".left-t").textContent = `0:${String(Math.max(0, Math.ceil(limit - t))).padStart(2,"0")}`;
+  if (t >= Math.min(UNLOCK_AFTER, limit - 0.5)) unlock(cur);
+  drawViz();
+  if (t >= limit - 0.05 || audio.ended) return finish(my);
+  requestAnimationFrame(()=>tick(my));
+}
+
+function finish(my){
+  const i = cur; audio.pause();
+  unlock(i);
+  const li = rowOf(i); li.classList.remove("active"); li.classList.add("ended");
+  li.querySelector(".fg").style.strokeDashoffset = 0;
+  if (AUTO_NEXT && i < TRACKS.length-1 && unlocked.size < 18){
+    $("#npSub").textContent = "La suite est sur Spotify · extrait suivant…";
+    endTimer = setTimeout(()=>{ if (my===token) play(i+1); }, 1800);
+  } else { cur = -1; $("#npSub").textContent = "Fin des extraits — écoute l'EP en entier"; }
+}
+function resetRow(i){
+  const li = rowOf(i); if (!li) return;
+  li.classList.remove("active");
+  li.querySelector(".fg").style.strokeDashoffset = RING;
+}
+function stop(){
+  token++; clearTimeout(endTimer); audio.pause();
+  if (cur>=0) resetRow(cur); cur=-1; $("#np").classList.remove("show");
+}
+$("#npStop").addEventListener("click", stop);
+$("#npNext").addEventListener("click", ()=> play(cur<0 ? 0 : (cur+1)%TRACKS.length));
+$("#playAll").addEventListener("click", ()=> play(0));
+
+/* visualiseur chrome/rouge */
+const cv = $("#viz"), g = cv.getContext("2d");
+function drawViz(){
+  const w = cv.clientWidth, h = cv.clientHeight, dpr = devicePixelRatio||1;
+  if (!w) return;
+  if (cv.width !== Math.round(w*dpr)){ cv.width = Math.round(w*dpr); cv.height = Math.round(h*dpr); }
+  g.setTransform(dpr,0,0,dpr,0,0); g.clearRect(0,0,w,h);
+  const n = 32, bw = w/n, now = performance.now();
+  if (analyser) analyser.getByteFrequencyData(freq);
+  const grd = g.createLinearGradient(0,0,0,h);
+  grd.addColorStop(0,"#ffffff"); grd.addColorStop(.45,"#e0261c"); grd.addColorStop(1,"#5a0907");
+  g.fillStyle = grd;
+  for (let k=0;k<n;k++){
+    const v = analyser ? freq[k % freq.length]/255
+                       : 0.2 + 0.7*Math.abs(Math.sin(now/170 + k*0.7)) * (0.55+0.45*Math.sin(k*1.3 + now/900));
+    const bh = Math.max(2, v*h);
+    g.fillRect(k*bw+1, h-bh, bw-2, bh);
+  }
+}
+
+/* ---------------- FIN ---------------- */
+$("#closeDone").addEventListener("click", ()=> $("#done").classList.remove("show"));
+$("#share").addEventListener("click", async ()=>{
+  const url = /^https?:/.test(location.protocol) ? location.href : ALBUM.spotify;
+  const data = { title: `${ALBUM.artist} — ${ALBUM.title}`, text: `J'ai ouvert les 18 portes de ${ALBUM.title} 🔴⚡`, url };
+  try{ if (navigator.share) await navigator.share(data); else { await navigator.clipboard.writeText(url); toast("Lien copié"); } }catch{}
+});
+</script>
+</body>
+</html>
