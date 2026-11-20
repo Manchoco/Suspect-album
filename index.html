@@ -19,6 +19,7 @@
   --stage-w:min(100vw, calc(100svh * 9 / 16));
 }
 *{box-sizing:border-box;margin:0;padding:0}
+[hidden]{display:none!important}
 html,body{height:100%;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
 body{overflow:hidden}
 body.list-mode{overflow:auto}
@@ -129,6 +130,16 @@ ol.tracks{list-style:none;border-top:1px solid var(--line)}
 .badge{font-size:10px;letter-spacing:.12em;text-transform:uppercase;border:1px solid #4a433e;color:#b5afa9;padding:2px 6px;border-radius:4px;margin-left:8px;vertical-align:2px}
 .track button.hit{position:absolute;inset:0;z-index:1}
 .track .more{position:relative;z-index:2}
+.story-btn{display:none;position:relative;z-index:2;width:32px;height:32px;border-radius:50%;place-items:center;border:1px solid #4a433e;color:#fff}
+.story-btn svg{width:16px;height:16px}
+.story-btn:hover{border-color:var(--red-hi);background:rgba(179,20,15,.25)}
+.track.done .story-btn,.track.ended .story-btn{display:grid}
+#story{position:fixed;inset:0;z-index:35;display:grid;place-items:center;background:rgba(0,0,0,.88);opacity:0;pointer-events:none;transition:opacity .4s;padding:16px}
+#story.show{opacity:1;pointer-events:auto}
+.story-card{display:flex;flex-direction:column;align-items:center;gap:14px;max-height:100%;width:100%;max-width:420px}
+.story-card img{height:min(64svh,620px);aspect-ratio:9/16;object-fit:contain;border-radius:10px;box-shadow:0 0 80px rgba(179,20,15,.45);background:#000}
+.story-card .hint2{color:#a8a29c;font-size:13px;text-align:center}
+.story-card .cta-row{margin-top:0;justify-content:center}
 
 /* now playing */
 #np{position:fixed;left:0;right:0;bottom:0;z-index:20;transform:translateY(110%);transition:transform .5s cubic-bezier(.2,.8,.2,1);background:rgba(14,12,11,.92);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-top:1px solid #2a2522;padding:10px 16px calc(10px + env(safe-area-inset-bottom))}
@@ -209,7 +220,7 @@ footer{color:#6f6964;font-size:12px;padding:40px 0 10px;text-align:center}
       </div>
     </header>
 
-    <p class="rules">Chaque titre = <strong>30 secondes max</strong>. Chaque extrait écouté dévoile un morceau de la pochette. Ouvre les 18 pour révéler Zeus en entier. La suite ? Sur Spotify.</p>
+    <p class="rules">Chaque titre = <strong>30 secondes max</strong>. Chaque extrait écouté dévoile un morceau de la pochette. Ouvre les 18 pour révéler Zeus en entier. Ton son préféré ? Fais-en ta story avec l’icône <span aria-hidden="true">▯+</span>. La suite ? Sur Spotify.</p>
 
     <ol class="tracks" id="tracks"></ol>
 
@@ -224,6 +235,7 @@ footer{color:#6f6964;font-size:12px;padding:40px 0 10px;text-align:center}
     <div class="np-t"><b id="npTitle">—</b><span id="npSub">Extrait · 0:30 max</span><canvas id="viz" aria-hidden="true"></canvas></div>
     <div class="np-btns">
       <button id="npStop" aria-label="Stop"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="1"/></svg></button>
+      <button id="npStory" aria-label="Créer ma story avec ce titre" title="Ma story"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M12 8v6M9 11h6"/></svg></button>
       <button id="npNext" aria-label="Extrait suivant"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 5l9 7-9 7V5zm10 0h2v14h-2z"/></svg></button>
     </div>
   </div>
@@ -239,6 +251,17 @@ footer{color:#6f6964;font-size:12px;padding:40px 0 10px;text-align:center}
       <button class="cta ghost" id="share">Partager</button>
     </div>
     <p style="margin-top:14px"><button id="closeDone" style="color:#8d8884;font-size:13px;text-decoration:underline">Fermer</button></p>
+  </div>
+</div>
+<div id="story" role="dialog" aria-modal="true" aria-label="Ta story Zeus">
+  <div class="story-card">
+    <img id="storyImg" alt="Ta carte story">
+    <p class="hint2" id="storyHint">Partage-la en story Instagram, TikTok ou WhatsApp.</p>
+    <div class="cta-row">
+      <button class="cta primary" id="storyShare">Partager</button>
+      <a class="cta ghost" id="storyDl" download="zeus-story.jpg">Télécharger</a>
+    </div>
+    <button id="storyClose" style="color:#8d8884;font-size:13px;text-decoration:underline">Fermer</button>
   </div>
 </div>
 <div class="toast" id="toast" role="status"></div>
@@ -375,6 +398,7 @@ TRACKS.forEach((tr,i)=>{
     </div>
     <div class="tname"><b>${tr.t}</b><span>Suspect 95${tr.feat ? ` · <span class="feat">feat. ${tr.feat}</span>` : ""}</span></div>
     <div class="right">
+      <button class="story-btn" aria-label="Créer ma story avec ${tr.t}" title="Ma story"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M12 8v6M9 11h6"/></svg></button>
       <a class="more" href="${tr.url}" target="_blank" rel="noopener">La suite ›</a>
       <span class="left-t">0:30</span><span class="dur">${tr.dur}</span>
     </div>
@@ -400,7 +424,7 @@ function initAudioGraph(){
 }
 const setVol = v => { v = Math.max(0,Math.min(1,v)); if (gain) gain.gain.value = v; else audio.volume = v; };
 
-let cur = -1, token = 0, isDemo = false, endTimer = null;
+let lastPlayed = -1, cur = -1, token = 0, isDemo = false, endTimer = null;
 const rowOf = i => ol.children[i];
 
 function toggle(i){ (cur===i && !audio.paused) ? stop() : play(i); }
@@ -415,7 +439,7 @@ async function play(i){
   initAudioGraph(); ctx?.resume();
   clearTimeout(endTimer);
   if (cur>=0) resetRow(cur);
-  cur = i; const my = ++token; const tr = TRACKS[i];
+  cur = i; lastPlayed = i; const my = ++token; const tr = TRACKS[i];
   const li = rowOf(i); li.classList.add("active"); li.classList.remove("ended");
   $("#npTitle").textContent = `${tr.n}. ${tr.t}${tr.feat?` (feat. ${tr.feat})`:""}`;
   $("#npSub").textContent = "Chargement…";
@@ -514,6 +538,104 @@ function drawViz(){
     g.fillRect(k*bw+1, h-bh, bw-2, bh);
   }
 }
+
+/* ---------------- STORY « Mon son de Zeus » ---------------- */
+const SITE_HOST = /^https?:/.test(location.protocol) ? location.host : "suspect-album.vercel.app";
+let storyFile = null, storyUrl = null;
+const loadImg = src => new Promise((res,rej)=>{ const im = new Image(); im.onload=()=>res(im); im.onerror=rej; im.src = src; });
+
+async function makeStory(i){
+  const tr = TRACKS[i], W = 1080, H = 1920;
+  try{ await Promise.all(["400 160px Anton","700 36px Inter","500 32px Inter"].map(f=>document.fonts.load(f))); }catch{}
+  const cover = await loadImg("assets/cover.jpg");
+  const c = document.createElement("canvas"); c.width = W; c.height = H;
+  const x = c.getContext("2d");
+  const spaced = (txt, px) => { if ("letterSpacing" in x) x.letterSpacing = px; else txt = txt.split("").join(" "); return txt; };
+
+  // fond noir + halo rouge
+  x.fillStyle = "#0a0a0b"; x.fillRect(0,0,W,H);
+  let g = x.createRadialGradient(W/2,700,40,W/2,700,1000);
+  g.addColorStop(0,"rgba(179,20,15,.55)"); g.addColorStop(1,"rgba(179,20,15,0)");
+  x.fillStyle = g; x.fillRect(0,0,W,H);
+  x.textAlign = "center"; x.textBaseline = "alphabetic";
+
+  // en-tête
+  x.fillStyle = "#e0261c"; x.font = "700 36px Inter";
+  x.fillText(spaced("MON SON DE ZEUS","12px"), W/2, 190);
+  x.fillStyle = "#bdb7b1"; x.font = "500 30px Inter";
+  x.fillText(spaced(`TITRE ${String(tr.n).padStart(2,"0")} / 18`,"8px"), W/2, 240);
+  if ("letterSpacing" in x) x.letterSpacing = "0px";
+
+  // pochette
+  x.save(); x.shadowColor = "rgba(224,38,28,.65)"; x.shadowBlur = 140;
+  x.drawImage(cover, 120, 300, 840, 840); x.restore();
+  x.strokeStyle = "rgba(255,255,255,.12)"; x.lineWidth = 2; x.strokeRect(120,300,840,840);
+
+  // titre en chrome, taille ajustée à la largeur
+  const title = tr.t.toUpperCase();
+  let fs = 170; x.font = `400 ${fs}px Anton`;
+  while (x.measureText(title).width > 940 && fs > 64){ fs -= 6; x.font = `400 ${fs}px Anton`; }
+  const ty = 1150 + 40 + fs;
+  const cg = x.createLinearGradient(0, ty - fs, 0, ty);
+  [[0,"#ffffff"],[.38,"#c9c9cc"],[.52,"#6d6d72"],[.7,"#e9e9ec"],[1,"#9b9ba0"]].forEach(([o,col])=>cg.addColorStop(o,col));
+  x.fillStyle = cg; x.fillText(title, W/2, ty);
+
+  let y = ty + 70;
+  x.fillStyle = "#f4f2ef"; x.font = "500 38px Inter";
+  x.fillText(tr.feat ? `Suspect 95 · feat. ${tr.feat}` : "Suspect 95", W/2, y);
+
+  // pastille OUT NOW
+  y += 110;
+  x.font = "400 54px Anton";
+  const label = `${ALBUM.title.toUpperCase()} · OUT NOW`;
+  const pw = x.measureText(label).width + 90;
+  x.fillStyle = "#b3140f";
+  x.beginPath(); (x.roundRect ? x.roundRect(W/2-pw/2, y-62, pw, 92, 46) : x.rect(W/2-pw/2, y-62, pw, 92)); x.fill();
+  x.fillStyle = "#ffffff"; x.fillText(label, W/2, y);
+
+  // pied
+  x.fillStyle = "#bdb7b1"; x.font = "500 34px Inter";
+  x.fillText("Ouvre OUT NOW et écoute les extraits", W/2, H-190);
+  x.fillStyle = "#ffffff"; x.font = "700 40px Inter";
+  x.fillText(SITE_HOST, W/2, H-130);
+
+  return new Promise(res => c.toBlob(res, "image/jpeg", 0.92));
+}
+
+async function openStory(i){
+  if (i < 0){ toast("Écoute d'abord un extrait"); return; }
+  const tr = TRACKS[i];
+  toast("Ta story se prépare…");
+  let blob;
+  try{ blob = await makeStory(i); }catch{ toast("Impossible de créer l'image"); return; }
+  if (!blob){ toast("Impossible de créer l'image"); return; }
+  const name = `zeus-${String(tr.n).padStart(2,"0")}.jpg`;
+  if (storyUrl) URL.revokeObjectURL(storyUrl);
+  storyUrl = URL.createObjectURL(blob);
+  storyFile = new File([blob], name, {type:"image/jpeg"});
+  storyFile._title = tr.t;
+  $("#storyImg").src = storyUrl;
+  $("#storyDl").href = storyUrl; $("#storyDl").download = name;
+  const canShare = !!(navigator.canShare && navigator.canShare({files:[storyFile]}));
+  $("#storyShare").hidden = !canShare;
+  $("#storyHint").textContent = canShare ? "Partage-la en story Instagram, TikTok ou WhatsApp."
+                                         : "Télécharge l'image, puis poste-la en story.";
+  $("#story").classList.add("show");
+}
+// Le partage part directement du clic (sinon Safari le bloque) : l'image est déjà prête.
+$("#storyShare").addEventListener("click", async ()=>{
+  if (!storyFile) return;
+  try{
+    await navigator.share({ files:[storyFile], title:`${ALBUM.artist} — ${ALBUM.title}`,
+      text:`Mon son de ${ALBUM.title} : ${storyFile._title} 🔴⚡ https://${SITE_HOST}` });
+  }catch(e){ if (e && e.name !== "AbortError") toast("Partage impossible — télécharge l'image"); }
+});
+$("#storyClose").addEventListener("click", ()=> $("#story").classList.remove("show"));
+$("#npStory").addEventListener("click", ()=> openStory(cur >= 0 ? cur : lastPlayed));
+ol.addEventListener("click", e=>{
+  const b = e.target.closest(".story-btn"); if (!b) return;
+  openStory([...ol.children].indexOf(b.closest(".track")));
+});
 
 /* ---------------- FIN ---------------- */
 $("#closeDone").addEventListener("click", ()=> $("#done").classList.remove("show"));
